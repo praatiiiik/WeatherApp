@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Weather App</string>
+    <string name="curr_loc">Current Location</string>
+    <string name="delhi">Delhi:</string>
+    <string name="mumbai">Mumbai:</string>
+    <string name="singapore">Singapore:</string>
+    <string name="melbourne">Melbourne:</string>
+    <string name="new_york">New York:</string>
+    <string name="sydney">Sydney:</string>
+    <string name="location">Location</string>
+    <string name="testWeatherType">Clear Sky</string>
+    <string name="testTemp">Temp: 22C</string>
+    <string name="humidity">Humidity: 18</string>
+    <string name="testTime">Wednesday, January 11, 2023 12:27:51 PM</string>
+    <string name="enableGPS">GPS</string>
+</resources>
