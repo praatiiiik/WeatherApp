@@ -3,9 +3,12 @@ package com.example.weatherapp
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkInfo
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -22,7 +25,6 @@ import com.example.weatherapp.databinding.ActivityMainBinding
 import com.example.weatherapp.local.LocalWeatherData
 import com.example.weatherapp.prefHelper.PrefConstants
 import com.example.weatherapp.prefHelper.PreferenceHelper
-import com.example.weatherapp.utility.Constants
 import com.example.weatherapp.utility.Status
 import com.google.android.gms.location.*
 import kotlinx.android.synthetic.main.activity_main.*
@@ -37,13 +39,10 @@ class MainActivity : AppCompatActivity() {
     private val vm : WeatherViewModel by viewModels()
     private lateinit var binding : ActivityMainBinding
 
+    //return result for gps enable permission
     private var resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            if(checkGPSStatus()){
-                showToast("GPS Enable")
-            }else{
-                showToast("Denied")
-            }
+
         }
     }
 
@@ -55,20 +54,24 @@ class MainActivity : AppCompatActivity() {
             showToast("Enable GPS for location")
             binding.gpsCV.visibility = View.VISIBLE
         }
+        if(!checkInternet())showToast("Offline Data")
         setUpObservers()
         getData()
         setUpViews()
     }
 
+    //best way to collect flow in presentation layer
+    //flow collection stopped automatically when app goes to stop state and start automatically when app comes to started state
     private fun setUpObservers(){
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED){
                 vm.weather.collectLatest {status->
                     when(status) {
                         is Status.Success -> setDataOnView(status.data)
-                        is Status.Loading -> showToast("Loading")
-                        is Status.Error -> showToast("Error")
-                        else -> showToast("Something went wrong")
+                        is Status.Loading -> binding.pg.visibility = View.VISIBLE
+                        is Status.Error -> showToast(status.message)
+                        is Status.Empty -> binding.pg.visibility = View.VISIBLE
+                        null -> binding.pg.visibility = View.VISIBLE
                     }
                 }
             }
@@ -84,8 +87,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //set data to textview
     @SuppressLint("SetTextI18n")
     private fun setDataOnView(data: List<LocalWeatherData>?) {
+        binding.pg.visibility = View.INVISIBLE
         if(data!=null && data.isNotEmpty()){
             binding.locTV.text = data[0].weatherResponse?.name ?: "No Data"
             binding.weatherTypeTV.text = data[0].weatherResponse?.weather?.get(0)?.description ?: ""
@@ -103,6 +108,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    //checks weather user granted location permission or not
     private fun isLocationPermission(): Boolean {
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -117,11 +123,16 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    //request location permission from user
+    //need to tell user the use case of this permission
+    //need to handle case when user denied permission
+    //need to store counter if user multiple times denied the permission
     private fun requestLocationPermission(){
         ActivityCompat.requestPermissions(this,
             arrayOf( Manifest.permission.ACCESS_FINE_LOCATION),
             1)
     }
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -138,6 +149,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //get data from data layer of app
+    //presentation layer need not to know weather data coming from server or local
     @SuppressLint("MissingPermission")
     private fun getData(){
         if(isLocationPermission()){
@@ -150,11 +163,10 @@ class MainActivity : AppCompatActivity() {
                     requestLocation(fusedLocationClient)
                 }else {
                     val location = getLatAndLon()
-                   if(location!=null){
-                       vm.getWeatherDataFromServer(location.lat,location.lon)
-                   }else{
+                   if(location==null){
                        showToast("Enable GPS to get your current location")
                    }
+                    vm.getWeatherDataFromServer(location?.lat,location?.lon)//call for other location
                 }
             }
         }else{
@@ -163,6 +175,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //request immediate location from gps if gps has not saved last location
+    @SuppressLint("MissingPermission")
     private fun requestLocation(fusedLocationClient: FusedLocationProviderClient) {
         val locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
@@ -173,6 +187,7 @@ class MainActivity : AppCompatActivity() {
         }
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .setWaitForAccurateLocation(false)
+            .setMaxUpdates(1)
             .setMinUpdateIntervalMillis(1000)
             .setMaxUpdateDelayMillis(500)
             .build()
@@ -181,15 +196,15 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    //stores last fetched location of user in shared preference
     private fun storeLatAndLon(lat:Double,lon:Double){
         PreferenceHelper.getInstance(this).setString(PrefConstants.CURRENT_LOCATION_LAT,lat.toString())
         PreferenceHelper.getInstance(this).setString(PrefConstants.CURRENT_LOCATION_LON,lon.toString())
-        PreferenceHelper.getInstance(this).setBoolean(PrefConstants.LAT_LON_SAVED,true)
         binding.gpsCV.visibility = View.INVISIBLE
     }
 
-    private fun isSavedLastLoc() = PreferenceHelper.getInstance(this).getBoolean(PrefConstants.LAT_LON_SAVED)
 
+    //used to get last stored latitude and longitude of user
     private fun getLatAndLon():Location?{
         val lat = PreferenceHelper.getInstance(this).getString(PrefConstants.CURRENT_LOCATION_LAT)
         val lon = PreferenceHelper.getInstance(this).getString(PrefConstants.CURRENT_LOCATION_LON)
@@ -199,15 +214,19 @@ class MainActivity : AppCompatActivity() {
 
     data class Location(val lat:Double, val lon:Double)
 
+
+    //checks weather gps is enable or not
     private fun checkGPSStatus():Boolean{
         val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
+    //request enabling of gps for getting location latitude and longitude
     private fun requestEnableGPS(){
         resultLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
     }
 
+    //convert date from epoch format date  to yyyy-MM-dd HH:mm:ss
     @SuppressLint("SimpleDateFormat")
     private fun epochToIST(epoch: Int?): String {
         if(epoch==null)return ""
@@ -223,4 +242,15 @@ class MainActivity : AppCompatActivity() {
     private fun showToast(msg:String){
         Toast.makeText(this,msg,Toast.LENGTH_SHORT).show()
     }
+
+    //checks network status
+    //need to implement with live data
+    private fun checkInternet(): Boolean {
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork: NetworkInfo? = connectivityManager.activeNetworkInfo
+        return activeNetwork?.isConnected == true
+    }
+
+
 }

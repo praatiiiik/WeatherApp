@@ -7,6 +7,10 @@ import androidx.room.Query
 import com.example.weatherapp.remote.response.weatherResponse.WeatherResponse
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Interface to communicate with room database
+ * Used for CRUD operations in room db
+ */
 @Dao
 interface WeatherDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)

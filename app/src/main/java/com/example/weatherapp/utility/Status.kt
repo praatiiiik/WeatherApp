@@ -1,5 +1,7 @@
 package com.example.weatherapp.utility
 
+
+//sealed class for status of data
 sealed class Status<T> {
 
     class Loading<T> : Status<T>()
@@ -20,33 +22,16 @@ sealed class Status<T> {
 
     companion object {
 
-        /**
-         * Returns [Status.Loading] instance.
-         */
         fun <T> loading() = Loading<T>()
 
-        /**
-         * Returns [Status.Success] instance.
-         * @param data Data to emit with status.
-         */
         private fun <T> success(data: T) =
             Success(data)
 
-        /**
-         * Returns [Status.Error] instance.
-         * @param message Description of failure.
-         */
         private fun <T> error(message: String) =
             Error<T>(message)
 
-        /**
-         * Returns [Status.Empty] instance.
-         */
         fun <T> empty() = Empty<T>()
 
-        /**
-         * Returns [Status] from [Resource]
-         */
         fun <T> fromResource(resource: Resource<T>): Status<T> = when (resource) {
             is Resource.Success -> success(resource.data)
             is Resource.Failed -> error(resource.msg)

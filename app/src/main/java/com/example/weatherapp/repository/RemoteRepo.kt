@@ -5,28 +5,38 @@ import com.example.weatherapp.local.LocalWeatherData
 import com.example.weatherapp.local.WeatherDB
 import com.example.weatherapp.remote.Networking
 import com.example.weatherapp.utility.Constants
+import java.lang.Exception
 
 class RemoteRepo {
 
+    /**
+     * Single Source of truth pattern
+     * this function used to fetch data from server, stores data in room database
+     *
+     * Need to implement(can't implement because of time)
+     * ->acknowledge for error msg from server to user
+     */
     suspend fun getWeatherDataFromServer(lat:Double?, lon:Double?,context: Context){
-        val list = ArrayList<LocalWeatherData?>()
-        val retrofit = Networking.instance.getRetrofit()
-        for(loc in getLOCList(lat,lon)){
-            if(loc?.lat==null || loc.lon==null){
-                list.add(LocalWeatherData(loc!!.location, null))
-                continue
-            }
-            loc.let {
-                it.apply {
-                    val weatherResponse = retrofit.getWeather(this.lat!!, this.lon!!)
-                    if(weatherResponse.isSuccessful && weatherResponse.body()!=null){
-                        val data = LocalWeatherData(location, weatherResponse.body())
-                        list.add(data)
+        try {
+            val list = ArrayList<LocalWeatherData?>()
+            val retrofit = Networking.instance.getRetrofit()
+            for(loc in getLOCList(lat,lon)){
+                if(loc?.lat==null || loc.lon==null){
+                    list.add(LocalWeatherData(loc!!.location, null))
+                    continue
+                }
+                loc.let {
+                    it.apply {
+                        val weatherResponse = retrofit.getWeather(this.lat!!, this.lon!!)
+                        if(weatherResponse.isSuccessful && weatherResponse.body()!=null){
+                            val data = LocalWeatherData(location, weatherResponse.body())
+                            list.add(data)
+                        }
                     }
                 }
             }
-        }
-        WeatherDB.getInstance(context).getDao().insertWeather(list)
+            WeatherDB.getInstance(context).getDao().insertWeather(list)
+        }catch (e:Exception){}
     }
 
     private fun getLOCList(lat:Double?,lon:Double?):List<LOCATION?>{

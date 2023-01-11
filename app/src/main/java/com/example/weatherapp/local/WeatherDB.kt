@@ -7,6 +7,12 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.example.weatherapp.remote.response.weatherResponse.WeatherTypeConverter
 
+/**
+ * Creating singleton room database object
+ * As we want no 2 CRUD operations are run simultaneously in db so we use Synchronized()
+ * Synchronized() is used to ensure that a block of code is only executed by one thread at a time.
+ */
+
 @Database(entities = [LocalWeatherData::class], version = 1, exportSchema = false)
 @TypeConverters(WeatherTypeConverter::class)
 abstract class WeatherDB:RoomDatabase() {

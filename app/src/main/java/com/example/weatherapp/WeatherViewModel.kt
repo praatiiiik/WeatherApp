@@ -15,6 +15,11 @@ import kotlinx.coroutines.launch
 
 class WeatherViewModel(application: Application):AndroidViewModel(application) {
 
+    /**
+     * Using flow for asynchronous data streaming
+     * Using Stateflow for handling state management of view
+     */
+
     private val mainRepo : MainRepo = MainRepo()
     private val _weather : MutableStateFlow<Status<List<LocalWeatherData>>?> = MutableStateFlow(Status.empty())
     val weather : StateFlow<Status<List<LocalWeatherData>>?> = _weather.asStateFlow()
@@ -32,11 +37,7 @@ class WeatherViewModel(application: Application):AndroidViewModel(application) {
             data.onStart {
                 _weather.value = Status.loading()
             }.map { resource -> Status.fromResource(resource) }
-                .collect { state ->
-                    _weather.value = state
-                    Log.d("resValue",state.toString())
-                }
+                .collect { state -> _weather.value = state }
         }
     }
-
 }

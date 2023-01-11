@@ -11,7 +11,11 @@ import retrofit2.create
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-
+/**
+ * Creates singleton object of retrofit using companion object
+ * Companion object creates a single instance which can be used for app life cycle
+ * Using OkHttpClient for api key interceptor and logging interceptor
+ */
 class Networking {
 
     companion object {
@@ -32,7 +36,7 @@ class Networking {
             .build()
 
         retrofit = Retrofit.Builder()
-            .baseUrl(EndPoints.BASE_URL)
+            .baseUrl(NetworkConstants.BASE_URL)
             .addConverterFactory(MoshiConverterFactory.create())
             .client(okHttpClient)
             .build()
@@ -48,7 +52,7 @@ class Networking {
         override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
             val original: Request = chain.request()
             val url: HttpUrl = original.url.newBuilder()
-                .addQueryParameter("appid", EndPoints.API_KEY)
+                .addQueryParameter(NetworkConstants.API_ID, NetworkConstants.API_KEY)
                 .build()
             val request: Request = original.newBuilder()
                 .url(url)

@@ -9,6 +9,12 @@ import kotlinx.coroutines.flow.*
 
 class LocalRepo {
 
+    /**
+     * this function return stored data
+     * distinctUntilChanged() is used with data streaming like flow or livedata
+     * return data only when changes
+     */
+
     suspend fun getWeatherLocal(context: Context): Flow<Resource<List<LocalWeatherData>>> {
         val dao = WeatherDB.getInstance(context).getDao()
         val data = dao.getWeatherFromLocal()

@@ -6,4 +6,7 @@ import androidx.room.PrimaryKey
 import com.example.weatherapp.remote.response.weatherResponse.WeatherResponse
 
 @Entity(tableName = "weather_table")
-data class LocalWeatherData(@PrimaryKey(autoGenerate = false) val location :String, @Embedded val weatherResponse: WeatherResponse?)
+data class LocalWeatherData(
+    @PrimaryKey(autoGenerate = false) val location: String,
+    @Embedded val weatherResponse: WeatherResponse?
+)

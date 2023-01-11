@@ -5,9 +5,13 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
+/**
+ * getWeather function used to communicate with server
+ * Suspend function for asynchronous task
+ */
 interface WeatherAPI {
 
-    @GET(EndPoints.WEATHER_ENDPOINTS)
+    @GET(NetworkConstants.WEATHER_ENDPOINTS)
     suspend fun getWeather(
         @Query("lat") lat: Double,
         @Query("lon") lon: Double
